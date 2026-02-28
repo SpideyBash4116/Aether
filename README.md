@@ -14,8 +14,8 @@ Explicit Declaration: Uses the *:=* operator for type-inferred variable creation
 **Installation**
 Ensure you have **Python 3.10+** installed. Clone the repository and run the interpreter:
 
-*Bash*
-*Powershell*
+>*Bash*
+>*Powershell*
 
 git clone https://github.com/SpideyBash4116/aether.git
 cd aether
@@ -23,7 +23,7 @@ python aether.py
 **Basic Syntax**
 Aether feels familiar if you've used either "parent" language:
 
-**Python**
+>**Python**
 
 **Go-style declaration**
 *mana := 100*
