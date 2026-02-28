@@ -1,4 +1,5 @@
 # 🌌 Aether Programming Language
+**Current Version:** https://img.shields.io/badge/v0.1.0--alpha-8A2BE2
 **Aether** is a **high-level, hybrid programming language** designed to combine the explicit declaration and performance-oriented "bones" of *Go* with the clean syntax and "batteries-included" heart of *Python.*
 
 ## ✨ Key Features
