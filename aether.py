@@ -64,6 +64,14 @@ class Aether:
             self.types[name] = type(val).__name__
             print(f"Initialized {name}")
             
+        if ">" in line or "<" in line or "==" in line:
+            try:
+                # result will be True or False
+                result = eval(line, {}, self.variables)
+                print(f"Result: {result}")
+            except Exception as e:
+                print(f"Logic Error: {e}")
+            
         elif "=" in line:
             parts = line.split("=")
             name = parts[0].strip()
