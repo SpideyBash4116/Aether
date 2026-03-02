@@ -1,90 +1,274 @@
-import re
+import ast
+import json
 import os
 
 class Aether:
     def __init__(self):
         self.variables = {}
         self.types = {}
+        self.history = []
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
 
     def show_help(self):
         print("\n--- AETHER COMMAND GUIDE ---")
-        print(f"{'Command':<10} | {'Action'}")
-        print("-" * 35)
-        print(f"{'help':<10} | Show this menu")
-        print(f"{'clear':<10} | Wipe terminal screen")
-        print(f"{'vars':<10} | View memory and types")
-        print(f"{'exit':<10} | Quit Aether")
-        print("-" * 35)
+        print(f"{'Command':<12} | {'Action'}")
+        print("-" * 45)
+        print(f"{'help':<12} | Show this menu")
+        print(f"{'clear':<12} | Wipe terminal screen")
+        print(f"{'vars':<12} | View memory and types")
+        print(f"{'del <name>':<12} | Delete a variable")
+        print(f"{'save <file>':<12} | Save memory to JSON")
+        print(f"{'load <file>':<12} | Load memory from JSON")
+        print(f"{'history':<12} | Show command history")
+        print(f"{'exit':<12} | Quit Aether")
+        print("-" * 45)
         print("Syntax: x := 10 + 5 (Declare)")
         print("        x = x * 2    (Update)")
-        print("-" * 35 + "\n")
+        print("        del x        (Delete variable)")
+        print("-" * 45 + "\n")
 
     def list_vars(self):
         if not self.variables:
             print("Memory is empty.")
             return
         print(f"\n{'NAME':<10} | {'TYPE':<8} | {'VALUE'}")
-        print("-" * 30)
+        print("-" * 40)
         for name, val in self.variables.items():
-            print(f"{name:<10} | {self.types[name]:<8} | {val}")
+            print(f"{name:<10} | {self.types.get(name, type(val).__name__):<8} | {val}")
         print()
 
     def run(self):
         self.clear_screen()
-        print("🌌 Aether v1.2 | PyGo Hybrid")
+        print("🌌 Aether v0.1.2-alpha | PyGo Hybrid (safe-eval + persistence)")
         print("Type 'help' to begin.")
-        
+
         while True:
             try:
                 line = input("ae> ").strip()
-                if not line: continue
-                if line.lower() == 'exit': break
-                if line.lower() == 'help': self.show_help(); continue
-                if line.lower() == 'clear': self.clear_screen(); continue
-                if line.lower() == 'vars': self.list_vars(); continue
-                
+                if not line:
+                    continue
+                self.history.append(line)
+                lower = line.lower()
+                if lower == 'exit':
+                    break
+                if lower == 'help':
+                    self.show_help()
+                    continue
+                if lower == 'clear':
+                    self.clear_screen()
+                    continue
+                if lower == 'vars':
+                    self.list_vars()
+                    continue
+                if lower.startswith('del '):
+                    _, name = line.split(None, 1)
+                    self.delete_var(name.strip())
+                    continue
+                if lower.startswith('save '):
+                    _, fname = line.split(None, 1)
+                    self.save_vars(fname.strip())
+                    continue
+                if lower.startswith('load '):
+                    _, fname = line.split(None, 1)
+                    self.load_vars(fname.strip())
+                    continue
+                if lower == 'history':
+                    self.print_history()
+                    continue
+
                 self.evaluate(line)
             except Exception as e:
                 print(f"Error: {e}")
 
+    # Persistence helpers
+    def save_vars(self, filename):
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(self.variables, f, default=str, indent=2)
+            print(f"Saved memory to '{filename}'")
+        except Exception as e:
+            print(f"Save Error: {e}")
+
+    def load_vars(self, filename):
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            for k, v in data.items():
+                self.variables[k] = v
+                self.types[k] = type(v).__name__
+            print(f"Loaded memory from '{filename}'")
+        except Exception as e:
+            print(f"Load Error: {e}")
+
+    def delete_var(self, name):
+        if name in self.variables:
+            del self.variables[name]
+            self.types.pop(name, None)
+            print(f"Deleted '{name}'")
+        else:
+            print(f"Error: '{name}' not found.")
+
+    def print_history(self):
+        for i, cmd in enumerate(self.history, 1):
+            print(f"{i:3}: {cmd}")
+
+    # Safe evaluator using AST
+    def safe_eval(self, expr):
+        node = ast.parse(expr, mode='eval')
+        return self._eval_node(node.body)
+
+    def _eval_node(self, node):
+        # Literals
+        if isinstance(node, ast.Constant):
+            return node.value
+        # For older Python versions
+        if isinstance(node, ast.Num):
+            return node.n
+        if isinstance(node, ast.Str):
+            return node.s
+        if isinstance(node, ast.NameConstant):
+            return node.value
+
+        if isinstance(node, ast.List):
+            return [self._eval_node(elt) for elt in node.elts]
+        if isinstance(node, ast.Tuple):
+            return tuple(self._eval_node(elt) for elt in node.elts)
+        if isinstance(node, ast.Dict):
+            return {self._eval_node(k): self._eval_node(v) for k, v in zip(node.keys, node.values)}
+
+        # Names
+        if isinstance(node, ast.Name):
+            if node.id in self.variables:
+                return self.variables[node.id]
+            if node.id in ("True", "False", "None"):
+                return {"True": True, "False": False, "None": None}[node.id]
+            raise NameError(f"Unknown variable '{node.id}'")
+
+        # Binary operations
+        if isinstance(node, ast.BinOp):
+            left = self._eval_node(node.left)
+            right = self._eval_node(node.right)
+            op = node.op
+            if isinstance(op, ast.Add):
+                return left + right
+            if isinstance(op, ast.Sub):
+                return left - right
+            if isinstance(op, ast.Mult):
+                return left * right
+            if isinstance(op, ast.Div):
+                return left / right
+            if isinstance(op, ast.FloorDiv):
+                return left // right
+            if isinstance(op, ast.Mod):
+                return left % right
+            if isinstance(op, ast.Pow):
+                return left ** right
+            raise TypeError(f"Unsupported binary operator {op}")
+
+        # Unary operations
+        if isinstance(node, ast.UnaryOp):
+            operand = self._eval_node(node.operand)
+            if isinstance(node.op, ast.UAdd):
+                return +operand
+            if isinstance(node.op, ast.USub):
+                return -operand
+            if isinstance(node.op, ast.Not):
+                return not operand
+            raise TypeError("Unsupported unary operator")
+
+        # Comparisons
+        if isinstance(node, ast.Compare):
+            left = self._eval_node(node.left)
+            for op, comparator in zip(node.ops, node.comparators):
+                right = self._eval_node(comparator)
+                if isinstance(op, ast.Eq):
+                    ok = left == right
+                elif isinstance(op, ast.NotEq):
+                    ok = left != right
+                elif isinstance(op, ast.Lt):
+                    ok = left < right
+                elif isinstance(op, ast.LtE):
+                    ok = left <= right
+                elif isinstance(op, ast.Gt):
+                    ok = left > right
+                elif isinstance(op, ast.GtE):
+                    ok = left >= right
+                else:
+                    raise TypeError("Unsupported comparison")
+                if not ok:
+                    return False
+                left = right
+            return True
+
+        # Boolean ops
+        if isinstance(node, ast.BoolOp):
+            if isinstance(node.op, ast.And):
+                for val in node.values:
+                    if not self._eval_node(val):
+                        return False
+                return True
+            if isinstance(node.op, ast.Or):
+                for val in node.values:
+                    if self._eval_node(val):
+                        return True
+                return False
+
+        # Subscript (indexing)
+        if isinstance(node, ast.Subscript):
+            value = self._eval_node(node.value)
+            slice_node = node.slice
+            # Handle different AST slice representations across Python versions
+            if isinstance(slice_node, ast.Index):
+                idx = self._eval_node(slice_node.value)
+            else:
+                # For ast.Constant or direct nodes
+                try:
+                    idx = self._eval_node(slice_node)
+                except Exception:
+                    idx = self._eval_node(slice_node.value) if hasattr(slice_node, 'value') else None
+            return value[idx]
+
+        # Disallow calls, attributes, and other exec-capable nodes
+        if isinstance(node, (ast.Call, ast.Attribute, ast.Lambda, ast.FunctionDef, ast.ClassDef)):
+            raise TypeError("Function calls, attribute access and definitions are not allowed")
+
+        raise TypeError(f"Unsupported expression: {ast.dump(node)}")
+
     def evaluate(self, line):
-        # A simple regex-based evaluator for our hybrid syntax
-        # Handles: var := expression OR var = expression
+        # Declaration
         if ":=" in line:
-            parts = line.split(":=")
+            parts = line.split(":=", 1)
             name = parts[0].strip()
             if name in self.variables:
                 print(f"Error: '{name}' already exists. Use '=' to update.")
                 return
-            val = eval(parts[1], {}, self.variables)
+            val = self.safe_eval(parts[1].strip())
             self.variables[name] = val
             self.types[name] = type(val).__name__
             print(f"Initialized {name}")
-            
-        if ">" in line or "<" in line or "==" in line:
-            try:
-                # result will be True or False
-                result = eval(line, {}, self.variables)
-                print(f"Result: {result}")
-            except Exception as e:
-                print(f"Logic Error: {e}")
-            
-        elif "=" in line:
-            parts = line.split("=")
+            return
+
+        # Update (single '=' but not '==')
+        if "=" in line and "==" not in line:
+            parts = line.split("=", 1)
             name = parts[0].strip()
             if name not in self.variables:
                 print(f"Error: '{name}' not found. Use ':=' to declare.")
                 return
-            val = eval(parts[1], {}, self.variables)
+            val = self.safe_eval(parts[1].strip())
             self.variables[name] = val
             self.types[name] = type(val).__name__
             print(f"Updated {name}")
-        else:
-            # Just evaluate raw math/variables
-            print(eval(line, {}, self.variables))
+            return
+
+        # Expression / comparison / raw math
+        try:
+            result = self.safe_eval(line)
+            print(result)
+        except Exception as e:
+            print(f"Logic Error: {e}")
 
 if __name__ == "__main__":
     Aether().run()
