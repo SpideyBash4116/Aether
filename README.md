@@ -36,7 +36,7 @@ mana = 150`
 
 ### Persistence Example
 Save and load interpreter memory:
-`ae> mana := 100 ae> save session.json ae> load session.json`
+`æ> mana := 100 æ> save session.json æ> load session.json`
 
 
 ### 🛠 Architecture
