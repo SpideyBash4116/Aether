@@ -46,7 +46,7 @@ class Aether:
 
         while True:
             try:
-                line = input("ae> ").strip()
+                line = input("æ> ").strip()
                 if not line:
                     continue
                 self.history.append(line)
