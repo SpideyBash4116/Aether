@@ -13,22 +13,23 @@ class Aether:
 
     def show_help(self):
         print("\n--- AETHER COMMAND GUIDE ---")
-        print(f"{'Command':<12} | {'Action'}")
-        print("-" * 45)
-        print(f"{'help':<12} | Show this menu")
-        print(f"{'clear':<12} | Wipe terminal screen")
-        print(f"{'vars':<12} | View memory and types")
-        print(f"{'del <name>':<12} | Delete a variable")
-        print(f"{'save <file>':<12} | Save memory to JSON")
-        print(f"{'load <file>':<12} | Load memory from JSON")
-        print(f"{'history':<12} | Show command history")
-        print(f"{'echo <text>':<12} | Print text to console")
-        print(f"{'exit':<12} | Quit Aether")
-        print("-" * 45)
+        print(f"{'Command':<14} | {'Action'}")
+        print("-" * 50)
+        print(f"{'help':<14} | Show this menu")
+        print(f"{'clear':<14} | Wipe terminal screen")
+        print(f"{'vars':<14} | View memory and types")
+        print(f"{'del <name>':<14} | Delete a variable")
+        print(f"{'save <file>':<14} | Save memory to JSON")
+        print(f"{'load <file>':<14} | Load memory from JSON")
+        print(f"{'history':<14} | Show command history")
+        print(f"{'echo text <text>':<14} | Print raw text to console")
+        print(f"{'echo var <name>':<14} | Print variable value to console")
+        print(f"{'exit':<14} | Quit Aether")
+        print("-" * 50)
         print("Syntax: x := 10 + 5 (Declare)")
         print("        x = x * 2    (Update)")
         print("        del x        (Delete variable)")
-        print("-" * 45 + "\n")
+        print("-" * 50 + "\n")
 
     def list_vars(self):
         if not self.variables:
@@ -37,12 +38,15 @@ class Aether:
         print(f"\n{'NAME':<10} | {'TYPE':<8} | {'VALUE'}")
         print("-" * 40)
         for name, val in self.variables.items():
-            print(f"{name:<10} | {self.types.get(name, type(val).__name__):<8} | {val}")
+            print(
+                f"{name:<10} | "
+                f"{self.types.get(name, type(val).__name__):<8} | {val}"
+            )
         print()
 
     def run(self):
         self.clear_screen()
-        print("🌌 Aether v0.1.2-alpha | PyGo Hybrid (safe-eval + persistence)")
+        print("🌌 Aether v0.1.3-alpha | PyGo Hybrid (safe-eval + persistence)")
         print("Type 'help' to begin.")
 
         while True:
@@ -79,14 +83,32 @@ class Aether:
                     self.print_history()
                     continue
 
-                # Echo command: print the rest of the line as-is
+                # Echo variants
+                if lower.startswith('echo text'):
+                    # preserve original casing and spacing of text
+                    if lower == 'echo text':
+                        text = ''
+                    else:
+                        text = line[len('echo text '):]
+                    self.echo_text(text)
+                    continue
+
+                if lower.startswith('echo var'):
+                    parts = line.split(None, 2)
+                    if len(parts) < 3 or not parts[2].strip():
+                        print("Usage: echo var <name>")
+                    else:
+                        name = parts[2].strip()
+                        self.echo_var(name)
+                    continue
+
+                # Backwards-compat: single-word echo prints raw following text
                 if lower.startswith('echo '):
                     _, text = line.split(None, 1)
-                    self.echo(text)
+                    self.echo_text(text)
                     continue
                 if lower == 'echo':
-                    # `echo` alone prints a blank line
-                    self.echo('')
+                    self.echo_text('')
                     continue
 
                 self.evaluate(line)
@@ -125,10 +147,18 @@ class Aether:
         for i, cmd in enumerate(self.history, 1):
             print(f"{i:3}: {cmd}")
 
-    # Simple console output command
-    def echo(self, text):
-        """Print raw text to the console. Usage: echo hello world"""
+    # Console output commands
+    def echo_text(self, text):
+        """Print raw text to the console. Usage: echo text Hello world"""
         print(text)
+
+    def echo_var(self, name):
+        """Print the value of a stored variable. Usage: echo var myVar"""
+        if name in self.variables:
+            val = self.variables[name]
+            print(val)
+        else:
+            print(f"Error: variable '{name}' not found.")
 
     # Safe evaluator using AST
     def safe_eval(self, expr):
@@ -140,11 +170,11 @@ class Aether:
         if isinstance(node, ast.Constant):
             return node.value
         # For older Python versions
-        if isinstance(node, ast.Constant):
-            return node.value
-        if isinstance(node, ast.Constant):
-            return node.value
-        if isinstance(node, ast.Constant):
+        if isinstance(node, ast.Num):
+            return node.n
+        if isinstance(node, ast.Str):
+            return node.s
+        if isinstance(node, ast.NameConstant):
             return node.value
 
         if isinstance(node, ast.List):
@@ -152,7 +182,10 @@ class Aether:
         if isinstance(node, ast.Tuple):
             return tuple(self._eval_node(elt) for elt in node.elts)
         if isinstance(node, ast.Dict):
-            return {self._eval_node(k): self._eval_node(v) for k, v in zip(node.keys, node.values)}
+            return {
+                self._eval_node(k): self._eval_node(v)
+                for k, v in zip(node.keys, node.values)
+            }
 
         # Names
         if isinstance(node, ast.Name):
@@ -243,11 +276,17 @@ class Aether:
                 try:
                     idx = self._eval_node(slice_node)
                 except Exception:
-                    idx = self._eval_node(slice_node.value) if hasattr(slice_node, 'value') else None
+                    idx = (
+                        self._eval_node(slice_node.value)
+                        if hasattr(slice_node, 'value')
+                        else None
+                    )
             return value[idx]
 
         # Disallow calls, attributes, and other exec-capable nodes
-        if isinstance(node, (ast.Call, ast.Attribute, ast.Lambda, ast.FunctionDef, ast.ClassDef)):
+        if isinstance(
+            node, (ast.Call, ast.Attribute, ast.Lambda, ast.FunctionDef, ast.ClassDef)
+        ):
             raise TypeError("Function calls, attribute access and definitions are not allowed")
 
         raise TypeError(f"Unsupported expression: {ast.dump(node)}")
