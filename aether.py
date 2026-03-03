@@ -22,6 +22,7 @@ class Aether:
         print(f"{'save <file>':<12} | Save memory to JSON")
         print(f"{'load <file>':<12} | Load memory from JSON")
         print(f"{'history':<12} | Show command history")
+        print(f"{'echo <text>':<12} | Print text to console")
         print(f"{'exit':<12} | Quit Aether")
         print("-" * 45)
         print("Syntax: x := 10 + 5 (Declare)")
@@ -78,6 +79,16 @@ class Aether:
                     self.print_history()
                     continue
 
+                # Echo command: print the rest of the line as-is
+                if lower.startswith('echo '):
+                    _, text = line.split(None, 1)
+                    self.echo(text)
+                    continue
+                if lower == 'echo':
+                    # `echo` alone prints a blank line
+                    self.echo('')
+                    continue
+
                 self.evaluate(line)
             except Exception as e:
                 print(f"Error: {e}")
@@ -113,6 +124,11 @@ class Aether:
     def print_history(self):
         for i, cmd in enumerate(self.history, 1):
             print(f"{i:3}: {cmd}")
+
+    # Simple console output command
+    def echo(self, text):
+        """Print raw text to the console. Usage: echo hello world"""
+        print(text)
 
     # Safe evaluator using AST
     def safe_eval(self, expr):
