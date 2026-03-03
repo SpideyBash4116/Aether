@@ -140,11 +140,11 @@ class Aether:
         if isinstance(node, ast.Constant):
             return node.value
         # For older Python versions
-        if isinstance(node, ast.Num):
-            return node.n
-        if isinstance(node, ast.Str):
-            return node.s
-        if isinstance(node, ast.NameConstant):
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Constant):
             return node.value
 
         if isinstance(node, ast.List):
