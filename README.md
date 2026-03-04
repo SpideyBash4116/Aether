@@ -14,7 +14,7 @@ Explicit Declaration: Uses the `:=` operator for type-inferred variable creation
 
 ## 🚀 Quick Start
 **Installation**  
-Ensure you have **Python 3.08+** installed *(if you have an earlier version, this project uses Constant and value in parts of the code. Replace with the now deprecated `Num`, `Str`, and `NameConstant` (if needed)).* Clone the repository and ignite the engine:
+Ensure you have **Python 3.08+** installed *(if you have an earlier version, this project uses Constant and value in parts of the code. Replace with the now deprecated *`Num`*, *`Str`*, and *`NameConstant`* (if needed)).* Clone the repository and ignite the engine:
 
 *Bash (or Powershell)*  
 `git clone https://github.com/SpideyBash4116/aether.git`  
