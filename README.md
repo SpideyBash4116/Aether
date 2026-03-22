@@ -1,6 +1,6 @@
 # 🌌 Aether Programming Language
 ## (Also called Æther)
-**Current Status:** `v0.1.2-alpha`  
+**Current Status:** `v0.1.3a-alpha`  
 **Aether** is a **high-level, hybrid programming language** designed to combine the explicit declaration and performance-oriented "bones" of *Go* with the clean syntax and "batteries-included" heart of *Python.*
 
 ## ✨ Key Features
