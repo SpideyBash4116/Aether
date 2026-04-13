@@ -46,7 +46,11 @@ class Aether:
 
     def run(self):
         self.clear_screen()
+<<<<<<< HEAD
+        print("🌌 Aether v0.1.3-alpha | PyGo Hybrid (safe-eval + persistence)")
+=======
         print("🌌 Aether v0.1.4a-alpha | PyGo Hybrid (safe-eval + persistence)")
+>>>>>>> Update the local code for the programming language
         print("Type 'help' to begin.")
 
         while True:
@@ -169,12 +173,21 @@ class Aether:
         # Literals
         if isinstance(node, ast.Constant):
             return node.value
+<<<<<<< HEAD
+        # For older Python versions
+        if isinstance(node, ast.Num):
+            return node.n
+        if isinstance(node, ast.Str):
+            return node.s
+        if isinstance(node, ast.NameConstant):
+=======
         # For new Python versions
         if isinstance(node, ast.Constant):
             return node.value
         if isinstance(node, ast.Constant):
             return node.value
         if isinstance(node, ast.Constant):
+>>>>>>> Update the local code for the programming language
             return node.value
 
         if isinstance(node, ast.List):
